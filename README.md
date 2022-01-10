@@ -17,4 +17,4 @@ There are two commonly used types of text summarisation:
 
 # Why Summarise Text / Data?
 
-In the current climate of continuous and wide-ranging publications that are released into the world everyday, there's simply too much text and data to grasp a full story. More often than not, headlines are not sufficient enough in painting the picture. This is why text summarisation tools exist: to reduce time needed to understand what a certain piece of text is trying to convey, optimising readability and topic coverage.
+In the current climate of continuous and wide-ranging publications that are released into the world everyday, there's simply too much text and data to grasp a full story. More often than not, headlines are not sufficient enough in painting the picture. This is why text summarisation tools exist: to reduce time needed to understand what a certain piece of text is trying to convey, through optimising readability and topic coverage.
