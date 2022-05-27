@@ -1,13 +1,48 @@
 #include <iostream>
+#include <filesystem>
+#include <string>
+
+bool checkFileExists(const std::string& file) { return std::filesystem::exists(file); }
+void processFileName(std::string& file, const std::string& dir, const std::string& type)
+{
+	do
+	{
+		std::getline(std::cin, file);
+		if (checkFileExists(dir + file + type)) { std::cout << file + type << " found.\n\n"; break; }
+		std::cout << "File doesn't exist. Enter a valid file name: ";
+
+	} while (true);
+}
+
+void selectInputFile(const std::string& dir, const std::string& type)
+{
+	std::string fileName{ "" };
+	std::cout << "Enter an input file name you wish to read from (file type is not required): ";
+	processFileName(fileName, dir, type);
+}
+
+void selectStopWordFile(const std::string& dir, const std::string& type)
+{
+	std::string fileName{ "" };
+	std::cout << "Enter stop words file name you wish to read from (file type is not required): ";
+	processFileName(fileName, dir, type);
+}
 
 int main()
 {
-	return 0;
+	const std::string inputFolderDir{ "txt\\input\\" };
+	const std::string stopWordsFolderDir{ "txt\\stopwords\\" };
+	const std::string fileType{ ".txt" };
+
+	selectInputFile(inputFolderDir, fileType);
+	selectStopWordFile(stopWordsFolderDir, fileType);
+
+	return EXIT_SUCCESS;
 }
 
 /*
 * Program Flow:
-* 1. Prompt user to enter input file name (e.g. inFile.txt)
+* 1. Prompt user to enter input file name they wish to read from (e.g. inFile.txt)
 * 2. Prompt user fo enter summarisation factor (SF) | SF = totalSummarisedWordCount: (SF / 100) * totalInputFileWordCount. (IGNORE MODULE PDF AS IT HAS INCORRECT FORMULA TO CALCULATE PERCENTAGE)
 *For example, if a text file has 107 words and the user inputs a 45% SF: (45 / 100) * 107 = we only want 48 (round down, we can't have half a word) words in our summarisation
 * 3. Read inFile.txt
