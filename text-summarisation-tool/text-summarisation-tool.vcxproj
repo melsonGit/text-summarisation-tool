@@ -153,6 +153,9 @@
     <Text Include="txt\inFile.txt" />
     <Text Include="txt\stopWords.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\DirectoryInfo.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

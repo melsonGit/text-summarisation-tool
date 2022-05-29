@@ -2,40 +2,73 @@
 #include <filesystem>
 #include <string>
 
-bool checkFileExists(const std::string& file) { return std::filesystem::exists(file); }
-void processFileName(std::string& file, const std::string& dir, const std::string& type)
+#include "../inc/DirectoryInfo.h"
+
+class File
 {
-	do
+private:
+
+	const std::string mName{};
+	const std::string mDirectory{};
+	const std::string mFileType{};
+	const std::string mFilePath{};
+
+public:
+
+	File(const std::string& name, const std::string& directory, const std::string& fileType) : 
+		mName{ name }, mDirectory{ directory }, mFileType{ fileType }, mFilePath{ directory + name + fileType }  {}
+
+	const std::string& getFileName() const { return this->mName; }
+	const std::string& getDirectoryName() const { return this->mDirectory; }
+	const std::string& getFileType() const { return this->mFileType; }
+};
+
+class FileHandler
+{
+private:
+
+	const File mInputFile;
+	const File mStopWordsFile;
+	//const File mOutputFile;
+
+	const bool checkFileExists(const std::string& fileName) { return std::filesystem::exists(fileName); }
+
+	const std::string processFileName(const std::string& directory, const std::string& type)
 	{
-		std::getline(std::cin, file);
-		if (checkFileExists(dir + file + type)) { std::cout << file + type << " found.\n\n"; break; }
-		std::cout << "File doesn't exist. Enter a valid file name: ";
+		std::string file{ "" };
 
-	} while (true);
-}
+		do
+		{
+			std::getline(std::cin, file);
+			if (checkFileExists(directory + file + type)) { std::cout << file + type << " found.\n\n"; return file; }
+			std::cout << "File doesn't exist. Enter a valid file name: ";
 
-void selectInputFile(const std::string& dir, const std::string& type)
-{
-	std::string fileName{ "" };
-	std::cout << "Enter an input file name you wish to read from (file type is not required): ";
-	processFileName(fileName, dir, type);
-}
+		} while (true);
+	}
 
-void selectStopWordFile(const std::string& dir, const std::string& type)
-{
-	std::string fileName{ "" };
-	std::cout << "Enter stop words file name you wish to read from (file type is not required): ";
-	processFileName(fileName, dir, type);
-}
+	const std::string selectInputFile(const std::string& directory, const std::string& type)
+	{
+		std::cout << "Enter an input file name you wish to read from (file type is not required): ";
+		return processFileName(directory, type);
+	}
+
+	const std::string selectStopWordFile(const std::string& directory, const std::string& type)
+	{
+		std::cout << "Enter stop words file name you wish to read from (file type is not required): ";
+		return processFileName(directory, type);
+	}
+
+public:
+
+	FileHandler() = delete;
+
+	FileHandler(const std::string& inputFileDir, const std::string& stopWordsDir, const std::string& type)
+		: mInputFile{this->selectInputFile(inputFileDir, type), inputFileDir, type}, mStopWordsFile{this->selectStopWordFile(stopWordsDir, type), stopWordsDir, type} {}
+};
 
 int main()
 {
-	const std::string inputFolderDir{ "txt\\input\\" };
-	const std::string stopWordsFolderDir{ "txt\\stopwords\\" };
-	const std::string fileType{ ".txt" };
-
-	selectInputFile(inputFolderDir, fileType);
-	selectStopWordFile(stopWordsFolderDir, fileType);
+	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::fileType);
 
 	return EXIT_SUCCESS;
 }
