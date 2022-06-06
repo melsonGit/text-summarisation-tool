@@ -22,15 +22,10 @@ private:
 
 public:
 
-	std::ifstream mOFile{};
-	std::ofstream mIFile{};
-
 	File() = delete;
 
 	File(const std::string& name, const std::string& directory, const std::string& fileType) :
-		mName{ name }, mDirectory{ directory }, mFileType{ fileType }, mFilePath{ directory + name + fileType }, mOFile{ mFilePath.c_str() }, mIFile{ mFilePath.c_str() }  {}
-
-	~File() { mIFile.close(); mOFile.close(); }
+		mName{ name }, mDirectory{ directory }, mFileType{ fileType }, mFilePath{ directory + name + fileType } {}
 
 	const std::string& getFileName() const { return this->mName; }
 	const std::string& getDirectoryName() const { return this->mDirectory; }
@@ -104,15 +99,20 @@ public:
 		mInputFile{this->selectInputFile(inputFileDir, type), inputFileDir, type}, 
 		mStopWordsFile{this->selectStopWordFile(stopWordsDir, type), stopWordsDir, type},
 		mOutputFile{ this->createOutputFile(outputFileDir, type), outputFileDir, type }{}
+
+	const std::string& getInputFilePath() { return this->mInputFile.getFilePath(); }
+	const std::string& getStopWordsFilePath() { return this->mStopWordsFile.getFilePath(); }
+	const std::string& getOutputFilePath() { return this->mOutputFile.getFilePath(); }
 };
-class TextSummariser
+class TextParser
 {
 private:
 
 	const int summFactor{};
+	int liveSummFactor{};
 
 	bool validSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
-	int createSummFactor()
+	int setSummFactor()
 	{
 		std::cout << "Please enter a summarisation factor (SF) between 1% - 100%: ";
 
@@ -131,16 +131,41 @@ private:
 		while (true);
 	}
 
+	void readSentence()
+	{
+
+	}
+	void filterSentence()
+	{
+
+	}
+	void writeParsedSentence()
+	{
+
+	}
+	void updateLiveSummFactor()
+	{
+
+	}
+	bool reachedSummFactorLimit() { return this->liveSummFactor == this->summFactor; }
+	int remainingSummFactor() { return this->summFactor - this->liveSummFactor; }
+
 public:
 
-	TextSummariser() : summFactor{ this->createSummFactor() } {}
+	TextParser() : summFactor{ this->setSummFactor() } {}
 
+	void summariseFile(const std::string& inputFilePath, const std::string& stopWordsFilePath, const std::string& outputFilePath)
+	{
+
+	}
 };
 
 int main()
 {
 	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
-	TextSummariser TextSummariser;
+
+	TextParser TextParser;
+	TextParser.summariseFile(FileHandler.getInputFilePath(), FileHandler.getStopWordsFilePath(), FileHandler.getOutputFilePath());
 
 	return EXIT_SUCCESS;
 }
@@ -159,10 +184,11 @@ int main()
 
 /*
 * Classes:
+* File - acts as file itself
 * FileHandler - open | close | edit files
 * TextStatistics - collects following data:
 				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWords encountered | summarisation factor |
 *				   sentence with most/least words pre and post summarisation | total words pre and post summarisation
-* TextSummariser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWords.txt
+* TextParser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWords.txt
 * TextFilter - filters text using stopWords.txt
 */
