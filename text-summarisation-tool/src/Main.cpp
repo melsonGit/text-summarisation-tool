@@ -22,10 +22,15 @@ private:
 
 public:
 
+	std::ifstream mOFile{};
+	std::ofstream mIFile{};
+
 	File() = delete;
 
-	File(const std::string& name, const std::string& directory, const std::string& fileType) : 
-		mName{ name }, mDirectory{ directory }, mFileType{ fileType }, mFilePath{ directory + name + fileType }  {}
+	File(const std::string& name, const std::string& directory, const std::string& fileType) :
+		mName{ name }, mDirectory{ directory }, mFileType{ fileType }, mFilePath{ directory + name + fileType }, mOFile{ mFilePath.c_str() }, mIFile{ mFilePath.c_str() }  {}
+
+	~File() { mIFile.close(); mOFile.close(); }
 
 	const std::string& getFileName() const { return this->mName; }
 	const std::string& getDirectoryName() const { return this->mDirectory; }
@@ -136,6 +141,7 @@ int main()
 {
 	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
 	TextSummariser TextSummariser;
+
 	return EXIT_SUCCESS;
 }
 
