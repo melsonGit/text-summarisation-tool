@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <string>
 #include <fstream>
+#include <unordered_map>
+#include <iterator>
 
 #include "../inc/DirectoryInfo.h"
 
@@ -77,7 +79,7 @@ private:
 	std::string selectInputFile(const std::string& directory, const std::string& type) const
 	{
 		std::cout << "Enter an input file name you wish to read from (file type is not required): ";
-		return userFindFile(directory, type);
+		return this->userFindFile(directory, type);
 	}
 	std::string selectStopWordFile(const std::string& directory, const std::string& type) const
 	{
@@ -100,9 +102,9 @@ public:
 		mStopWordsFile{this->selectStopWordFile(stopWordsDir, type), stopWordsDir, type},
 		mOutputFile{ this->createOutputFile(outputFileDir, type), outputFileDir, type }{}
 
-	const std::string& getInputFilePath() { return this->mInputFile.getFilePath(); }
-	const std::string& getStopWordsFilePath() { return this->mStopWordsFile.getFilePath(); }
-	const std::string& getOutputFilePath() { return this->mOutputFile.getFilePath(); }
+	const std::string& getInputFilePath() const { return this->mInputFile.getFilePath(); }
+	const std::string& getStopWordsFilePath() const { return this->mStopWordsFile.getFilePath(); }
+	const std::string& getOutputFilePath() const { return this->mOutputFile.getFilePath(); }
 };
 class TextParser
 {
@@ -111,14 +113,25 @@ private:
 	const int summFactor{};
 	int liveSummFactor{};
 
+	const std::unordered_map<std::string, std::string> stopWords{};
+	const std::string prefilteredText{};
+	const std::string inputFilePath{};
+	const std::string outputFilePath{};
+	std::string summarisedText{};
+
+	// Helper Functions
 	bool validSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
+	bool reachedSummFactorLimit() const { return this->liveSummFactor == this->summFactor; }
+	int remainingSummFactor() { return this->summFactor - this->liveSummFactor; }
+
+	// Init Functions
 	int setSummFactor()
 	{
 		std::cout << "Please enter a summarisation factor (SF) between 1% - 100%: ";
 
 		int SF{};
 
-		do 
+		do
 		{
 			std::cin >> SF;
 
@@ -127,36 +140,72 @@ private:
 				std::cout << "SF outside specified range. Enter a valid SF: ";
 
 			clearInputStream();
-		}
-		while (true);
+		} while (true);
 	}
-
-	void readSentence()
+	std::unordered_map<std::string, std::string> populateStopWordMap(const std::string& stopWordsFilePath)
 	{
+		std::unordered_map<std::string, std::string> tempList{};
+		std::ifstream stopWordFile{ stopWordsFilePath };
+		std::string word{ "" };
 
+		while (stopWordFile >> word)
+			tempList[word] = word;
+
+		stopWordFile.close();
+		return tempList;
 	}
-	void filterSentence()
+	std::string setPrefilteredText(const std::string& prefilteredTextFilePath)
 	{
-
+		// Push input stream buffer into single string from a file
+		std::ifstream tempFile(prefilteredTextFilePath);
+		std::string tempStr(std::istreambuf_iterator<char>{tempFile}, {});
+		tempFile.close();
+		return tempStr;
 	}
-	void writeParsedSentence()
-	{
 
-	}
-	void updateLiveSummFactor()
-	{
-
-	}
-	bool reachedSummFactorLimit() { return this->liveSummFactor == this->summFactor; }
-	int remainingSummFactor() { return this->summFactor - this->liveSummFactor; }
+	// Parsing Functions
+	void readSentence() {}
+	void filterSentence(){}
+	void writeParsedSentence(){}
+	void updateLiveSummFactor(){}
 
 public:
 
-	TextParser() : summFactor{ this->setSummFactor() } {}
+	TextParser() = delete;
 
-	void summariseFile(const std::string& inputFilePath, const std::string& stopWordsFilePath, const std::string& outputFilePath)
+	TextParser(const FileHandler& FileHandler) 
+		: 
+		summFactor{ this->setSummFactor() }, 
+		stopWords{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
+		prefilteredText{this->setPrefilteredText(FileHandler.getInputFilePath())},
+		inputFilePath{FileHandler.getInputFilePath()},
+		outputFilePath{FileHandler.getOutputFilePath()}{}
+
+	void summariseFile()
 	{
+		constexpr char sentenceDelimiter{ '.' };
+		std::ifstream inputFile{ this->inputFilePath };
+		std::ifstream outputFile{ this->outputFilePath };
 
+		std::string prefilteredSentence{ "" };
+		std::string postfilteredSentence{ "" };
+		std::string summarisedSentence{ "" };
+
+		while (true)
+		{
+			// Copy sentence into prefilteredSentence to the next fullstop
+			std::getline(inputFile, prefilteredSentence, sentenceDelimiter);
+
+			// Filter sentence
+
+			
+
+			if (inputFile.eof())
+				break;
+		}
+
+		inputFile.close();
+		outputFile.close();
 	}
 };
 
@@ -164,8 +213,9 @@ int main()
 {
 	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
 
-	TextParser TextParser;
-	TextParser.summariseFile(FileHandler.getInputFilePath(), FileHandler.getStopWordsFilePath(), FileHandler.getOutputFilePath());
+	TextParser TextParser(FileHandler);
+
+	//TextParser.summariseFile();
 
 	return EXIT_SUCCESS;
 }
@@ -176,7 +226,7 @@ int main()
 *  (DONE)  2. Prompt user fo enter summarisation factor (SF) | SF = totalSummarisedWordCount: (SF / 100) * totalInputFileWordCount. (IGNORE MODULE PDF AS IT HAS INCORRECT FORMULA TO CALCULATE PERCENTAGE)
 *For example, if a text file has 107 words and the user inputs a 45% SF: (45 / 100) * 107 = we only want 48 (round down, we can't have half a word) words in our summarisation
 * 3. Read inFile.txt
-* 4. Read stopWords.txt
+* 4. Read stopWordFile.txt
 * 5. Process text from inFile.txt accordingly
 * 6. Output summary text to new file (e.g. outFile.txt)
 * 7. Display to console some appropriate statistics
@@ -187,8 +237,8 @@ int main()
 * File - acts as file itself
 * FileHandler - open | close | edit files
 * TextStatistics - collects following data:
-				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWords encountered | summarisation factor |
+				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWordFile encountered | summarisation factor |
 *				   sentence with most/least words pre and post summarisation | total words pre and post summarisation
-* TextParser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWords.txt
-* TextFilter - filters text using stopWords.txt
+* TextParser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWordFile.txt
+* TextFilter - filters text using stopWordFile.txt
 */
