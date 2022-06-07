@@ -110,19 +110,26 @@ class TextParser
 {
 private:
 
-	const int summFactor{};
-	int liveSummFactor{};
+	// Summarisation Factor Variables
+	const int mSummFactor{};
+	int mCurrentSummFactor{};
 
-	const std::unordered_map<std::string, std::string> stopWords{};
-	const std::string prefilteredText{};
-	const std::string inputFilePath{};
-	const std::string outputFilePath{};
-	std::string summarisedText{};
+	// Containers
+	const std::unordered_map<std::string, std::string> mStopWordsMap{};
+	std::vector<std::string> mSentenceHolder{};
+
+	// Text Paths
+	const std::string mInputFilePath{};
+	const std::string mOutputFilePath{};
+
+	// Text State Variables
+	const std::string mPrefilteredText{};
+	std::string mSummarisedText{};
 
 	// Helper Functions
 	bool validSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
-	bool reachedSummFactorLimit() const { return this->liveSummFactor == this->summFactor; }
-	int remainingSummFactor() { return this->summFactor - this->liveSummFactor; }
+	bool reachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
+	int remainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
 
 	// Init Functions
 	int setSummFactor()
@@ -164,7 +171,7 @@ private:
 	}
 
 	// Parsing Functions
-	void readSentence() {}
+	void readSentence(){}
 	void filterSentence(){}
 	void writeParsedSentence(){}
 	void updateLiveSummFactor(){}
@@ -175,17 +182,17 @@ public:
 
 	TextParser(const FileHandler& FileHandler) 
 		: 
-		summFactor{ this->setSummFactor() }, 
-		stopWords{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
-		prefilteredText{this->setPrefilteredText(FileHandler.getInputFilePath())},
-		inputFilePath{FileHandler.getInputFilePath()},
-		outputFilePath{FileHandler.getOutputFilePath()}{}
+		mSummFactor{ this->setSummFactor() },
+		mStopWordsMap{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
+		mPrefilteredText{this->setPrefilteredText(FileHandler.getInputFilePath())},
+		mInputFilePath{FileHandler.getInputFilePath()},
+		mOutputFilePath{FileHandler.getOutputFilePath()}{}
 
 	void summariseFile()
 	{
-		constexpr char sentenceDelimiter{ '.' };
-		std::ifstream inputFile{ this->inputFilePath };
-		std::ifstream outputFile{ this->outputFilePath };
+		constexpr char delimiter{ '.' };
+		std::ifstream outputFile{ this->mOutputFilePath };
+		std::ifstream inputFile{ this->mInputFilePath };
 
 		std::string prefilteredSentence{ "" };
 		std::string postfilteredSentence{ "" };
@@ -193,18 +200,41 @@ public:
 
 		while (true)
 		{
+
+			// For next impl. we need to split a delimited string into multiple strings..
+			// ..... removing stopwords from each substring before inserting it into out mSentenceHolder and then returning back to where we ended on the last sub string
+
+
 			// Copy sentence into prefilteredSentence to the next fullstop
-			std::getline(inputFile, prefilteredSentence, sentenceDelimiter);
+			std::getline(inputFile, prefilteredSentence, delimiter);
+
+			std::istringstream stringStream{ prefilteredSentence };
+
+			do
+			{
+				std::string word{ "" };
+
+				stringStream >> word;
+
+				if (!this->mStopWordsMap.contains(word))
+				{
+					postfilteredSentence.append(word + " ");
+				}
+				
+			} while (stringStream);
+
+
+			// Remove whitespace at end of string and append full stop
+			postfilteredSentence.erase(std::find_if(postfilteredSentence.rbegin(), postfilteredSentence.rend(), [](unsigned char ch) {
+					return !std::isspace(ch);
+					}).base(), postfilteredSentence.end());
+			postfilteredSentence.append(".");
+
 
 			// Filter sentence
-
-			
-
 			if (inputFile.eof())
 				break;
 		}
-
-		inputFile.close();
 		outputFile.close();
 	}
 };
@@ -214,8 +244,7 @@ int main()
 	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
 
 	TextParser TextParser(FileHandler);
-
-	//TextParser.summariseFile();
+	TextParser.summariseFile();
 
 	return EXIT_SUCCESS;
 }
