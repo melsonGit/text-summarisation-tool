@@ -170,7 +170,7 @@ private:
 		return tempStr;
 	}
 
-	// Parsing Functions
+	// Parsing Functions - Impl. WIP
 	void readSentence(){}
 	void filterSentence(){}
 	void writeParsedSentence(){}
@@ -190,6 +190,10 @@ public:
 
 	void summariseFile()
 	{
+
+		// For next impl. we need to split a delimited string into multiple strings..
+		// ..... removing stopwords from each substring before inserting it into out mSentenceHolder and then returning back to where we ended on the last sub string
+
 		constexpr char delimiter{ '.' };
 		std::ifstream outputFile{ this->mOutputFilePath };
 		std::ifstream inputFile{ this->mInputFilePath };
@@ -198,44 +202,42 @@ public:
 		std::string postfilteredSentence{ "" };
 		std::string summarisedSentence{ "" };
 
-		while (true)
+		// Grab sentence until we reach a fullstop
+		while (std::getline(inputFile, prefilteredSentence, delimiter))
 		{
-
-			// For next impl. we need to split a delimited string into multiple strings..
-			// ..... removing stopwords from each substring before inserting it into out mSentenceHolder and then returning back to where we ended on the last sub string
-
-
-			// Copy sentence into prefilteredSentence to the next fullstop
-			std::getline(inputFile, prefilteredSentence, delimiter);
-
+			// Push this sentence into a stringstream
 			std::istringstream stringStream{ prefilteredSentence };
 
+			// Evaluate each word of the current stringstream
 			do
 			{
 				std::string word{ "" };
-
 				stringStream >> word;
 
+				// Check if this word is in our stop word list
 				if (!this->mStopWordsMap.contains(word))
-				{
+					// If not, we append the word onto our post filtered sentence
 					postfilteredSentence.append(word + " ");
-				}
-				
-			} while (stringStream);
+				// If so, we just skip the word and don't append to our filtered sentence
 
+			} while (stringStream); // Continue until we reach the end of the stream
 
-			// Remove whitespace at end of string and append full stop
+			// Once we've reach teh end of the stringstream, remove whitespace at end of sentence and append full stop
 			postfilteredSentence.erase(std::find_if(postfilteredSentence.rbegin(), postfilteredSentence.rend(), [](unsigned char ch) {
-					return !std::isspace(ch);
-					}).base(), postfilteredSentence.end());
+				return !std::isspace(ch);
+				}).base(), postfilteredSentence.end());
 			postfilteredSentence.append(".");
 
+			// Push post filter sentence into our sentence holder
+			this->mSentenceHolder.push_back(postfilteredSentence);
 
-			// Filter sentence
-			if (inputFile.eof())
-				break;
+			// Reset post filter sentence
+			postfilteredSentence = "";
 		}
-		outputFile.close();
+
+		// print contents of sentence holder
+		for (auto i{ 0 }; i < mSentenceHolder.size(); ++i)
+			std::cout << mSentenceHolder[i] << '\n';
 	}
 };
 
@@ -252,10 +254,10 @@ int main()
 /*
 * Program Flow:
 *  (DONE) 1. Prompt user to enter input file name they wish to read from (e.g. inFile.txt)
-*  (DONE)  2. Prompt user fo enter summarisation factor (SF) | SF = totalSummarisedWordCount: (SF / 100) * totalInputFileWordCount. (IGNORE MODULE PDF AS IT HAS INCORRECT FORMULA TO CALCULATE PERCENTAGE)
+*  (DONE) 2. Prompt user fo enter summarisation factor (SF) | SF = totalSummarisedWordCount: (SF / 100) * totalInputFileWordCount. (IGNORE MODULE PDF AS IT HAS INCORRECT FORMULA TO CALCULATE PERCENTAGE)
 *For example, if a text file has 107 words and the user inputs a 45% SF: (45 / 100) * 107 = we only want 48 (round down, we can't have half a word) words in our summarisation
-* 3. Read inFile.txt
-* 4. Read stopWordFile.txt
+*  (DONE) 3. Read inFile.txt
+*  (DONE) 4. Read stopWordFile.txt
 * 5. Process text from inFile.txt accordingly
 * 6. Output summary text to new file (e.g. outFile.txt)
 * 7. Display to console some appropriate statistics
@@ -269,5 +271,4 @@ int main()
 				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWordFile encountered | summarisation factor |
 *				   sentence with most/least words pre and post summarisation | total words pre and post summarisation
 * TextParser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWordFile.txt
-* TextFilter - filters text using stopWordFile.txt
 */
