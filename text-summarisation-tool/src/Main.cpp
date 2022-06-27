@@ -53,7 +53,7 @@ private:
 
 			if (checkFileExists(directory + file + type)) { std::cout << file + type << " found.\n\n"; return file; }
 			else
-				std::cout << "File doesn't exist. Enter a valid file name: ";
+				std::cout << "File doesn't exist. Enter a valid file name:\n";
 
 		} while (true);
 	}
@@ -72,23 +72,23 @@ private:
 				return file;
 			}
 			else
-				std::cout << file + type << " already exists. Enter a new file name: ";
+				std::cout << file + type << " already exists. Enter a new file name:\n";
 
 		} while (true);
 	}
 	std::string selectInputFile(const std::string& directory, const std::string& type) const
 	{
-		std::cout << "Enter an input file name you wish to read from (file type is not required): ";
+		std::cout << "Enter an input file name you wish to read from (file type is not required):\n";
 		return this->userFindFile(directory, type);
 	}
 	std::string selectStopWordFile(const std::string& directory, const std::string& type) const
 	{
-		std::cout << "Enter stop words file name you wish to read from (file type is not required): ";
+		std::cout << "Enter stop words file name you wish to read from (file type is not required | stop words must be stored as lower case):\n";
 		return this->userFindFile(directory, type);
 	}
 	std::string createOutputFile(const std::string& directory, const std::string& type) const
 	{
-		std::cout << "Enter output file name you wish to create (file type is not required): ";
+		std::cout << "Enter output file name you wish to create (file type is not required):\n";
 		return this->userCreateFile(directory, type);
 	}
 
@@ -106,9 +106,34 @@ public:
 	const std::string& getStopWordsFilePath() const { return this->mStopWordsFile.getFilePath(); }
 	const std::string& getOutputFilePath() const { return this->mOutputFile.getFilePath(); }
 };
+
+struct WordStatistics
+{
+	// Our word (lower case for key functionality purposes)
+	const std::string word{ "" };
+	// How many times this word appears in prefiltered text
+	int wordFreq{};
+	// How many times this word was removed for postfiltered text
+	int removeFreq{}; 
+	// How many times this word appears in summarised text
+	int summFreq{};
+};
+class TextStatistics
+{
+private:
+
+	std::unordered_map<std::string, WordStatistics> mWordList{};
+
+public:
+
+};
+
 class TextParser
 {
 private:
+
+	// Used by TextParser to collate and output relevant statistics
+	TextStatistics mTextStatistics;
 
 	// Summarisation Factor Variables
 	const int mSummFactor{};
@@ -116,7 +141,10 @@ private:
 
 	// Containers
 	const std::unordered_map<std::string, std::string> mStopWordsMap{};
-	std::vector<std::string> mSentenceHolder{};
+	std::unordered_map<std::string, std::string> mNonStopWordsMap{};
+
+	std::vector<std::string> mFirstFilterSentenceHolder{};
+	std::vector<std::string> mFinalFilterSentenceHolder{};
 
 	// Text Paths
 	const std::string mInputFilePath{};
@@ -129,6 +157,7 @@ private:
 	// Helper Functions
 	bool validSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
 	bool reachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
+	bool isFirstUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
 	int remainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
 
 	// Init Functions
@@ -169,6 +198,14 @@ private:
 		tempFile.close();
 		return tempStr;
 	}
+	std::string decapitaliseWord(const std::string& origWord)
+	{
+		std::string tempWord{ origWord };
+		for (auto& c : tempWord)
+			c = std::tolower(c);
+
+		return tempWord;
+	}
 
 	// Parsing Functions - Impl. WIP
 	void readSentence(){}
@@ -190,18 +227,14 @@ public:
 
 	void summariseFile()
 	{
-
-		// For next impl. we need to split a delimited string into multiple strings..
-		// ..... removing stopwords from each substring before inserting it into out mSentenceHolder and then returning back to where we ended on the last sub string
-
 		constexpr char delimiter{ '.' };
 		std::ifstream outputFile{ this->mOutputFilePath };
 		std::ifstream inputFile{ this->mInputFilePath };
 
 		std::string prefilteredSentence{ "" };
 		std::string postfilteredSentence{ "" };
-		std::string summarisedSentence{ "" };
 
+		// First Filter Stage - Removing Stop Words
 		// Grab sentence until we reach a fullstop
 		while (std::getline(inputFile, prefilteredSentence, delimiter))
 		{
@@ -211,33 +244,58 @@ public:
 			// Evaluate each word of the current stringstream
 			do
 			{
-				std::string word{ "" };
-				stringStream >> word;
+				std::string originalWord{ "" };
+				std::string processedWord{ "" };
+
+				stringStream >> originalWord;
+
+				// If first letter is upper case
+				if (this->isFirstUpper(originalWord))
+					// change to lower case and assign to processed word
+					processedWord = this->decapitaliseWord(originalWord);
+				else
+					// no change needed and assign to processed word
+					processedWord = originalWord;
 
 				// Check if this word is in our stop word list
-				if (!this->mStopWordsMap.contains(word))
-					// If not, we append the word onto our post filtered sentence
-					postfilteredSentence.append(word + " ");
-				// If so, we just skip the word and don't append to our filtered sentence
+				if (!this->mStopWordsMap.contains(processedWord))
+				{
+					// If not, we append the word onto our post filtered sentence and insert into mNonStopWordsMap
+					postfilteredSentence.append(originalWord + " ");
+					this->mNonStopWordsMap.insert(std::pair(processedWord, processedWord));
+				}
+				// If the word is in our stop word list, we just skip the word and don't append to our filtered sentence
 
 			} while (stringStream); // Continue until we reach the end of the stream
 
-			// Once we've reach teh end of the stringstream, remove whitespace at end of sentence and append full stop
-			postfilteredSentence.erase(std::find_if(postfilteredSentence.rbegin(), postfilteredSentence.rend(), [](unsigned char ch) {
-				return !std::isspace(ch);
-				}).base(), postfilteredSentence.end());
+			// Once we've reach the end of the stringstream, remove whitespace at end of sentence and append full stop
+			postfilteredSentence.erase(std::find_if(postfilteredSentence.rbegin(), postfilteredSentence.rend(), [](unsigned char ch) 
+				{return !std::isspace(ch);}).base(), postfilteredSentence.end());
+
 			postfilteredSentence.append(".");
 
 			// Push post filter sentence into our sentence holder
-			this->mSentenceHolder.push_back(postfilteredSentence);
+			this->mFirstFilterSentenceHolder.push_back(postfilteredSentence);
 
 			// Reset post filter sentence
 			postfilteredSentence = "";
 		}
 
+		//	Final Filter Stage - WIP
+		//	First we remove stop words, and fill up mNonStopWordsMap with every word (other than stop words) in the prefiltered text
+		//	Then: 
+		//	Repeat the following until SF is exceeded >
+		//	{
+		//	For each sentence, count the number of the words that matches the top word(most frequent) in the filtered word list.
+		//  Find the sentence that has the highest number of occurrences of the most frequent word.
+		//  If the length of words in the summary text added to the current selected sentence word length exceeds the summary word length limit the sentence is ignored.
+		//	Else add the sentence to the summary text. Remove the word from the top of the frequency word list and the sentence from the listing of word sentences.
+		//	}
+		//	Output
+
 		// print contents of sentence holder
-		for (auto i{ 0 }; i < mSentenceHolder.size(); ++i)
-			std::cout << mSentenceHolder[i] << '\n';
+		for (auto i{ 0 }; i < mFirstFilterSentenceHolder.size(); ++i)
+			std::cout << mFirstFilterSentenceHolder[i] << '\n';
 	}
 };
 
@@ -265,8 +323,8 @@ int main()
 
 /*
 * Classes:
-* File - acts as file itself
-* FileHandler - open | close | edit files
+* (DONE) File - acts as file itself
+* (DONE) FileHandler - open | close | edit files
 * TextStatistics - collects following data:
 				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWordFile encountered | summarisation factor |
 *				   sentence with most/least words pre and post summarisation | total words pre and post summarisation
