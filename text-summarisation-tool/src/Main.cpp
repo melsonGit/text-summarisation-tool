@@ -117,15 +117,38 @@ struct WordStatistics
 	int removeFreq{}; 
 	// How many times this word appears in summarised text
 	int summFreq{};
+	// Determines word type
+	const bool isStopWord{};
 };
 class TextStatistics
 {
 private:
 
-	std::unordered_map<std::string, WordStatistics> mWordList{};
+	std::unordered_map<std::string, WordStatistics> mWordStats{};
 
 public:
 
+	void insertNonStopWord(const std::string& wordToInsert)
+	{
+		// Check if we've already go this word in our map
+		if (this->mWordStats.find(wordToInsert) == this->mWordStats.end()) 
+		{
+			this->mWordStats.insert(std::pair(wordToInsert, wordToInsert));
+
+			// modify word stats as well with iterator return from the std::find
+		}
+		else 
+		{
+			// found
+		}
+
+
+		
+	}
+	void insertStopWord(const std::string& wordToInsert)
+	{
+
+	}
 };
 
 class TextParser
@@ -140,8 +163,8 @@ private:
 	int mCurrentSummFactor{};
 
 	// Containers
-	const std::unordered_map<std::string, std::string> mStopWordsMap{};
-	std::unordered_map<std::string, std::string> mNonStopWordsMap{};
+	const std::unordered_map<std::string, std::string> mStopWordsList{};
+	std::unordered_map<std::string, std::string> mNonStopWordsList{};
 
 	std::vector<std::string> mFirstFilterSentenceHolder{};
 	std::vector<std::string> mFinalFilterSentenceHolder{};
@@ -220,7 +243,7 @@ public:
 	TextParser(const FileHandler& FileHandler) 
 		: 
 		mSummFactor{ this->setSummFactor() },
-		mStopWordsMap{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
+		mStopWordsList{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
 		mPrefilteredText{this->setPrefilteredText(FileHandler.getInputFilePath())},
 		mInputFilePath{FileHandler.getInputFilePath()},
 		mOutputFilePath{FileHandler.getOutputFilePath()}{}
@@ -241,6 +264,7 @@ public:
 			// Push this sentence into a stringstream
 			std::istringstream stringStream{ prefilteredSentence };
 
+			// StringStreams check token by token (tabs, whitespace, etc); therefore it will stop evaluating a string when we reach a e.g. whitespace 
 			// Evaluate each word of the current stringstream
 			do
 			{
@@ -258,13 +282,15 @@ public:
 					processedWord = originalWord;
 
 				// Check if this word is in our stop word list
-				if (!this->mStopWordsMap.contains(processedWord))
+				if (!this->mStopWordsList.contains(processedWord))
 				{
-					// If not, we append the word onto our post filtered sentence and insert into mNonStopWordsMap
+					// If not, we append the word onto our post filtered sentence and insert into mNonStopWordsList
 					postfilteredSentence.append(originalWord + " ");
-					this->mNonStopWordsMap.insert(std::pair(processedWord, processedWord));
+					this->mTextStatistics.insertNonStopWord(processedWord);
 				}
-				// If the word is in our stop word list, we just skip the word and don't append to our filtered sentence
+				else
+					// If the word is in our stop word list, we just skip the word and don't append to our filtered sentence
+					this->mTextStatistics.insertStopWord(processedWord);
 
 			} while (stringStream); // Continue until we reach the end of the stream
 
@@ -282,7 +308,7 @@ public:
 		}
 
 		//	Final Filter Stage - WIP
-		//	First we remove stop words, and fill up mNonStopWordsMap with every word (other than stop words) in the prefiltered text
+		//	(DONE) First we remove stop words, and fill up mNonStopWordsMap with every word (other than stop words) in the prefiltered text
 		//	Then: 
 		//	Repeat the following until SF is exceeded >
 		//	{
@@ -294,8 +320,14 @@ public:
 		//	Output
 
 		// print contents of sentence holder
-		for (auto i{ 0 }; i < mFirstFilterSentenceHolder.size(); ++i)
-			std::cout << mFirstFilterSentenceHolder[i] << '\n';
+		for (auto i{ 0 }; i < this->mFirstFilterSentenceHolder.size(); ++i)
+			std::cout << this->mFirstFilterSentenceHolder[i] << '\n';
+
+		std::cout << "\n\n\n";
+
+		// Print all words in the mNonStopWordsList
+		for (const auto& itr : this->mNonStopWordsList)
+			std::cout << itr.second << '\n';
 	}
 };
 
