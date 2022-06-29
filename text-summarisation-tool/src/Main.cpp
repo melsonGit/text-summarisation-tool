@@ -109,16 +109,33 @@ public:
 
 struct WordStatistics
 {
+private:
+
 	// Our word (lower case for key functionality purposes)
-	const std::string word{ "" };
+	const std::string mWord{ "" };
 	// How many times this word appears in prefiltered text
-	int wordFreq{};
+	int mWordFreq{};
 	// How many times this word was removed for postfiltered text
-	int removeFreq{}; 
+	int mRemoveFreq{}; 
 	// How many times this word appears in summarised text
-	int summFreq{};
+	int mSummFreq{};
 	// Determines word type
-	const bool isStopWord{};
+	const bool mIsStopWord{};
+
+	WordStatistics() = delete;
+
+public:
+
+	// Normal word init
+	WordStatistics(const std::string& wordToInsert, const bool& isStopWord, const int& initFreq)
+		: mWord{ wordToInsert }, mWordFreq{1}, mIsStopWord{ isStopWord }{}
+	// Stop word init
+	WordStatistics(const std::string& stopWordToInsert, const bool& isStopWord, const int& initFreq, const int& initRemoveFreq)
+		: mWord{ stopWordToInsert }, mWordFreq{ 1 }, mIsStopWord{ isStopWord }{}
+
+	void incrementWordFreq() { ++this->mWordFreq; }
+	void incrementRemoveFreq() { ++this->mRemoveFreq; }
+	void incrementSummFreq() { ++this->mSummFreq; }
 };
 class TextStatistics
 {
@@ -128,26 +145,47 @@ private:
 
 public:
 
-	void insertNonStopWord(const std::string& wordToInsert)
-	{
-		// Check if we've already go this word in our map
-		if (this->mWordStats.find(wordToInsert) == this->mWordStats.end()) 
-		{
-			this->mWordStats.insert(std::pair(wordToInsert, wordToInsert));
 
-			// modify word stats as well with iterator return from the std::find
+	void processWordStats(){} // use this for refactor the two funcs below (DRY problems)
+
+	void processNonStopWord(const std::string& wordToInsert)
+	{
+		auto itr{ this->mWordStats.find(wordToInsert)};
+
+		if (itr == this->mWordStats.end())
+		{
+			// First instance of processing this word means we need to assign frequency to 1 in relevant vars
+			const int firstWordInitFreq{ 1 };
+			const bool isStopWord{ false };
+
+			WordStatistics newNonStopWord{ wordToInsert, isStopWord, firstWordInitFreq};
+
+			this->mWordStats.insert(std::pair(wordToInsert, newNonStopWord));
 		}
 		else 
-		{
-			// found
-		}
-
-
-		
+			// Increment word freq if it already exists in our map
+			itr->second.incrementWordFreq();
 	}
-	void insertStopWord(const std::string& wordToInsert)
+	void processStopWord(const std::string& wordToInsert)
 	{
+		auto itr{ this->mWordStats.find(wordToInsert) };
 
+		if (itr == this->mWordStats.end())
+		{
+			// First instance of processing this word means we need to assign frequency to 1 in relevant vars
+			const int firstWordInitFreq{ 1 };
+			const bool isStopWord{ true };
+
+			WordStatistics newStopWord{ wordToInsert, isStopWord, firstWordInitFreq, firstWordInitFreq };
+
+			this->mWordStats.insert(std::pair(wordToInsert, newStopWord));
+		}
+		else
+		{
+			// Increment word freq / remove freq if it already exists in our map
+			itr->second.incrementWordFreq();
+			itr->second.incrementRemoveFreq();
+		}
 	}
 };
 
@@ -286,11 +324,11 @@ public:
 				{
 					// If not, we append the word onto our post filtered sentence and insert into mNonStopWordsList
 					postfilteredSentence.append(originalWord + " ");
-					this->mTextStatistics.insertNonStopWord(processedWord);
+					this->mTextStatistics.processNonStopWord(processedWord);
 				}
 				else
 					// If the word is in our stop word list, we just skip the word and don't append to our filtered sentence
-					this->mTextStatistics.insertStopWord(processedWord);
+					this->mTextStatistics.processStopWord(processedWord);
 
 			} while (stringStream); // Continue until we reach the end of the stream
 
