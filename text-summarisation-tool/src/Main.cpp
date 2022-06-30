@@ -106,8 +106,7 @@ public:
 	const std::string& getStopWordsFilePath() const { return this->mStopWordsFile.getFilePath(); }
 	const std::string& getOutputFilePath() const { return this->mOutputFile.getFilePath(); }
 };
-
-struct WordStatistics
+struct Word
 {
 private:
 
@@ -122,73 +121,89 @@ private:
 	// Determines word type
 	const bool mIsStopWord{};
 
-	WordStatistics() = delete;
+	Word() = delete;
 
 public:
 
 	// Normal word init
-	WordStatistics(const std::string& wordToInsert, const bool& isStopWord, const int& initFreq)
-		: mWord{ wordToInsert }, mWordFreq{1}, mIsStopWord{ isStopWord }{}
+	Word(const std::string& wordToArchive, const bool& isStopWord, const int& initFreq)
+		: mWord{ wordToArchive }, mWordFreq{ initFreq }, mIsStopWord{ isStopWord }{}
 	// Stop word init
-	WordStatistics(const std::string& stopWordToInsert, const bool& isStopWord, const int& initFreq, const int& initRemoveFreq)
-		: mWord{ stopWordToInsert }, mWordFreq{ 1 }, mIsStopWord{ isStopWord }{}
+	Word(const std::string& stopWordToArchive, const bool& isStopWord, const int& initFreq, const int& initRemoveFreq)
+		: mWord{ stopWordToArchive }, mWordFreq{ initFreq }, mRemoveFreq{ initRemoveFreq }, mIsStopWord{ isStopWord }{}
 
 	void incrementWordFreq() { ++this->mWordFreq; }
 	void incrementRemoveFreq() { ++this->mRemoveFreq; }
 	void incrementSummFreq() { ++this->mSummFreq; }
+
+	const std::string& getWord() const { return this->mWord; }
+	const int& getWordFreq() const { return this->mWordFreq; }
+	const int& getWordRemoveFreq() const { return this->mRemoveFreq; }
+	const int& getWordSummFreq() const { return this->mSummFreq; }
+	const bool& getWordType() const { return this->mIsStopWord; }
+
 };
 class TextStatistics
 {
 private:
 
-	std::unordered_map<std::string, WordStatistics> mWordStats{};
+	std::unordered_map<std::string, Word> mWordArchive{};
+	std::string mLongestWord{ "" };
+	std::string mShortestWord{ "" };
+	int mTotWordsPreSum{};
+	int mTotWordsPostSum{};
 
 public:
 
-
-	void processWordStats(){} // use this for refactor the two funcs below (DRY problems)
-
-	void processNonStopWord(const std::string& wordToInsert)
+	void processWordStats(const std::string& wordToInsert, const bool& isStopWord)
 	{
-		auto itr{ this->mWordStats.find(wordToInsert)};
+		auto itr{ this->mWordArchive.find(wordToInsert) };
 
-		if (itr == this->mWordStats.end())
+		// If we've not seen this word yet
+		if (itr == this->mWordArchive.end())
 		{
 			// First instance of processing this word means we need to assign frequency to 1 in relevant vars
 			const int firstWordInitFreq{ 1 };
-			const bool isStopWord{ false };
 
-			WordStatistics newNonStopWord{ wordToInsert, isStopWord, firstWordInitFreq};
-
-			this->mWordStats.insert(std::pair(wordToInsert, newNonStopWord));
+			if (isStopWord)
+			{
+				Word newStopWord{ wordToInsert, isStopWord, firstWordInitFreq, firstWordInitFreq };
+				this->mWordArchive.insert(std::pair(wordToInsert, newStopWord));
+			}
+			else
+			{
+				Word newNonStopWord{ wordToInsert, isStopWord, firstWordInitFreq };
+				this->mWordArchive.insert(std::pair(wordToInsert, newNonStopWord));
+			}
 		}
-		else 
-			// Increment word freq if it already exists in our map
-			itr->second.incrementWordFreq();
+		else // If we've already seen this word
+		{
+			if (isStopWord)
+			{
+				// Increment word freq / remove freq if it already exists in our map
+				itr->second.incrementWordFreq();
+				itr->second.incrementRemoveFreq();
+			}
+			else // Increment word freq if it already exists in our map
+				itr->second.incrementWordFreq();
+		}
 	}
-	void processStopWord(const std::string& wordToInsert)
+	void printWordArchive() // temp func
 	{
-		auto itr{ this->mWordStats.find(wordToInsert) };
-
-		if (itr == this->mWordStats.end())
-		{
-			// First instance of processing this word means we need to assign frequency to 1 in relevant vars
-			const int firstWordInitFreq{ 1 };
-			const bool isStopWord{ true };
-
-			WordStatistics newStopWord{ wordToInsert, isStopWord, firstWordInitFreq, firstWordInitFreq };
-
-			this->mWordStats.insert(std::pair(wordToInsert, newStopWord));
-		}
-		else
-		{
-			// Increment word freq / remove freq if it already exists in our map
-			itr->second.incrementWordFreq();
-			itr->second.incrementRemoveFreq();
-		}
+		for (const auto& itr : this->mWordArchive)
+			std::cout << itr.second.getWord() << "\t Word Freq: " << itr.second.getWordFreq() 
+			<< "\t Word Freq Remov: " << itr.second.getWordRemoveFreq() 
+			<< "\t Is Stop Word: " << std::boolalpha << itr.second.getWordType() << '\n';
 	}
+
+	void setLongestWord(const std::string& newLongestWord) { this->mLongestWord = newLongestWord; }
+	void setShortestWord(const std::string& newShortestWord) { this->mShortestWord = newShortestWord; }
+
+	const std::string& getLongestWord() const { return this->mLongestWord; }
+	const std::string& getShortestWord() const { return this->mShortestWord; }
+	const int& getTotWordsPreSum() const { return this->mTotWordsPreSum; }
+	const int& getTotWordsPostSum() const { return this->mTotWordsPostSum; }
 };
-
 class TextParser
 {
 private:
@@ -202,7 +217,6 @@ private:
 
 	// Containers
 	const std::unordered_map<std::string, std::string> mStopWordsList{};
-	std::unordered_map<std::string, std::string> mNonStopWordsList{};
 
 	std::vector<std::string> mFirstFilterSentenceHolder{};
 	std::vector<std::string> mFinalFilterSentenceHolder{};
@@ -295,7 +309,7 @@ public:
 		std::string prefilteredSentence{ "" };
 		std::string postfilteredSentence{ "" };
 
-		// First Filter Stage - Removing Stop Words
+		// First Filter Stage - Removing Stop Words & Archiving all words for the next filter stage
 		// Grab sentence until we reach a fullstop
 		while (std::getline(inputFile, prefilteredSentence, delimiter))
 		{
@@ -308,6 +322,7 @@ public:
 			{
 				std::string originalWord{ "" };
 				std::string processedWord{ "" };
+				bool isStopWord{};
 
 				stringStream >> originalWord;
 
@@ -320,15 +335,17 @@ public:
 					processedWord = originalWord;
 
 				// Check if this word is in our stop word list
-				if (!this->mStopWordsList.contains(processedWord))
-				{
-					// If not, we append the word onto our post filtered sentence and insert into mNonStopWordsList
-					postfilteredSentence.append(originalWord + " ");
-					this->mTextStatistics.processNonStopWord(processedWord);
-				}
+				if (this->mStopWordsList.contains(processedWord))
+					isStopWord = true; // If the word is in our stop word list, don't append to our filtered sentence
 				else
-					// If the word is in our stop word list, we just skip the word and don't append to our filtered sentence
-					this->mTextStatistics.processStopWord(processedWord);
+				{
+					isStopWord = false;
+					// If not, we append the word onto our post filtered sentence
+					postfilteredSentence.append(originalWord + " ");
+				}
+
+				this->mTextStatistics.processWordStats(processedWord, isStopWord);
+
 
 			} while (stringStream); // Continue until we reach the end of the stream
 
@@ -346,8 +363,6 @@ public:
 		}
 
 		//	Final Filter Stage - WIP
-		//	(DONE) First we remove stop words, and fill up mNonStopWordsMap with every word (other than stop words) in the prefiltered text
-		//	Then: 
 		//	Repeat the following until SF is exceeded >
 		//	{
 		//	For each sentence, count the number of the words that matches the top word(most frequent) in the filtered word list.
@@ -363,9 +378,7 @@ public:
 
 		std::cout << "\n\n\n";
 
-		// Print all words in the mNonStopWordsList
-		for (const auto& itr : this->mNonStopWordsList)
-			std::cout << itr.second << '\n';
+		this->mTextStatistics.printWordArchive();
 	}
 };
 
@@ -396,7 +409,7 @@ int main()
 * (DONE) File - acts as file itself
 * (DONE) FileHandler - open | close | edit files
 * TextStatistics - collects following data:
-				   least/most freq word and letter | shortest/longest word | most removed/unremoved word | least/most freq stopWordFile encountered | summarisation factor |
-*				   sentence with most/least words pre and post summarisation | total words pre and post summarisation
+				   least/most freq word | shortest/longest word | most removed/unremoved word | least/most freq stopWordFile encountered | summarisation factor |
+*				   | total words pre and post summarisation
 * TextParser - analyses text and outputs summarised text | uses TextStatistics to collect data | uses TextFilter to filter words using stopWordFile.txt
 */
