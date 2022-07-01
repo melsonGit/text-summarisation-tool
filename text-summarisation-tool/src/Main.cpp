@@ -4,6 +4,8 @@
 #include <fstream>
 #include <unordered_map>
 #include <iterator>
+#include <array>
+#include <algorithm>
 
 #include "../inc/DirectoryInfo.h"
 
@@ -148,6 +150,8 @@ class TextStatistics
 private:
 
 	std::unordered_map<std::string, Word> mWordArchive{};
+	std::array<std::string, 5> mTopFiveFreqWords{};
+	std::array<std::string, 5> mTopFiveFreqStopWords{};
 	std::string mLongestWord{ "" };
 	std::string mShortestWord{ "" };
 	int mTotWordsPreSum{};
@@ -230,10 +234,12 @@ private:
 	std::string mSummarisedText{};
 
 	// Helper Functions
-	bool validSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
-	bool reachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
-	bool isFirstUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
-	int remainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
+	bool hValidSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
+	bool hReachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
+	bool hIsFirstCharUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
+	bool hIsFirstSpecChar(const std::string& word) const { return (word[0] == word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? true : false); }
+	void hRemoveFirstChar(std::string& word) const { word.erase(word.begin()); }
+	int hRemainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
 
 	// Init Functions
 	int setSummFactor()
@@ -246,7 +252,7 @@ private:
 		{
 			std::cin >> SF;
 
-			if (validSummFactor(SF)) { std::cout << "SF valid.\n\n"; return SF; }
+			if (this->hValidSummFactor(SF)) { std::cout << "SF valid.\n\n"; return SF; }
 			else
 				std::cout << "SF outside specified range. Enter a valid SF: ";
 
@@ -327,12 +333,17 @@ public:
 				stringStream >> originalWord;
 
 				// If first letter is upper case
-				if (this->isFirstUpper(originalWord))
+				if (this->hIsFirstCharUpper(originalWord))
 					// change to lower case and assign to processed word
 					processedWord = this->decapitaliseWord(originalWord);
 				else
 					// no change needed and assign to processed word
 					processedWord = originalWord;
+
+				// If word has special character, remove it (WIP - lets check for end char too)
+				if (this->hIsFirstSpecChar(processedWord))
+					this->hRemoveFirstChar(processedWord);
+
 
 				// Check if this word is in our stop word list
 				if (this->mStopWordsList.contains(processedWord))
