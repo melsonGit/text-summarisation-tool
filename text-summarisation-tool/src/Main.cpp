@@ -194,10 +194,13 @@ public:
 	}
 	void printWordArchive() // temp func
 	{
+		const int widthAp{ 15 };
+
 		for (const auto& itr : this->mWordArchive)
-			std::cout << itr.second.getWord() << "\t Word Freq: " << itr.second.getWordFreq() 
-			<< "\t Word Freq Remov: " << itr.second.getWordRemoveFreq() 
-			<< "\t Is Stop Word: " << std::boolalpha << itr.second.getWordType() << '\n';
+			std::cout << std::left << std::setw(widthAp) << itr.second.getWord() 
+			<< "\t Word Freq: " << std::setw(widthAp) << itr.second.getWordFreq()
+			<< "\t Word Freq Remov: " << std::setw(widthAp) << itr.second.getWordRemoveFreq()
+			<< "\t Is Stop Word: " << std::setw(widthAp) << std::boolalpha << itr.second.getWordType() << '\n';
 	}
 
 	void setLongestWord(const std::string& newLongestWord) { this->mLongestWord = newLongestWord; }
@@ -237,8 +240,10 @@ private:
 	bool hValidSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
 	bool hReachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
 	bool hIsFirstCharUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
-	bool hIsFirstSpecChar(const std::string& word) const { return (word[0] == word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? true : false); }
+	bool hIsFirstSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? false : true); }
+	//bool hIsLastSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890", word.size()) ? false : true); }
 	void hRemoveFirstChar(std::string& word) const { word.erase(word.begin()); }
+	void hRemoveLastChar(std::string& word) const { if (word.empty()) return; else word.pop_back(); }
 	int hRemainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
 
 	// Init Functions
@@ -340,10 +345,13 @@ public:
 					// no change needed and assign to processed word
 					processedWord = originalWord;
 
-				// If word has special character, remove it (WIP - lets check for end char too)
+				// !We want quotes to skip this section!
+				// If word first char is special character, remove it
 				if (this->hIsFirstSpecChar(processedWord))
 					this->hRemoveFirstChar(processedWord);
-
+				// If word last char is special character, remove it
+				//if (this->hIsLastSpecChar(processedWord))
+				//	this->hRemoveLastChar(processedWord);
 
 				// Check if this word is in our stop word list
 				if (this->mStopWordsList.contains(processedWord))
