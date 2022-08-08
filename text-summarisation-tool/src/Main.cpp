@@ -42,6 +42,7 @@ private:
 
 	const File mInputFile;
 	const File mStopWordsFile;
+	const File mStopCharFile;
 	const File mOutputFile;
 
 	bool checkFileExists(const std::string& fileName) const { return std::filesystem::exists(fileName); }
@@ -88,6 +89,11 @@ private:
 		std::cout << "Enter stop words file name you wish to read from (file type is not required | stop words must be stored as lower case):\n";
 		return this->userFindFile(directory, type);
 	}
+	std::string selectStopCharFile(const std::string& directory, const std::string& type) const
+	{
+		std::cout << "Enter stop char file name you wish to read from (file type is not required | stop chars must be stored as lower case):\n";
+		return this->userFindFile(directory, type);
+	}
 	std::string createOutputFile(const std::string& directory, const std::string& type) const
 	{
 		std::cout << "Enter output file name you wish to create (file type is not required):\n";
@@ -98,14 +104,16 @@ public:
 
 	FileHandler() = delete;
 
-	FileHandler(const std::string& inputFileDir, const std::string& stopWordsDir, const std::string& outputFileDir, const std::string& type)
+	FileHandler(const std::string& inputFileDir, const std::string& stopWordsDir, const std::string& stopCharDir, const std::string& outputFileDir, const std::string& type)
 		: 
-		mInputFile{this->selectInputFile(inputFileDir, type), inputFileDir, type}, 
-		mStopWordsFile{this->selectStopWordFile(stopWordsDir, type), stopWordsDir, type},
+		mInputFile{ this->selectInputFile(inputFileDir, type), inputFileDir, type },
+		mStopWordsFile{ this->selectStopWordFile(stopWordsDir, type), stopWordsDir, type },
+		mStopCharFile{ this->selectStopCharFile(stopCharDir, type), stopCharDir, type },
 		mOutputFile{ this->createOutputFile(outputFileDir, type), outputFileDir, type }{}
 
 	const std::string& getInputFilePath() const { return this->mInputFile.getFilePath(); }
 	const std::string& getStopWordsFilePath() const { return this->mStopWordsFile.getFilePath(); }
+	const std::string& getStopCharFilePath() const { return this->mStopCharFile.getFilePath(); }
 	const std::string& getOutputFilePath() const { return this->mOutputFile.getFilePath(); }
 };
 struct Word
@@ -224,6 +232,7 @@ private:
 
 	// Containers
 	const std::unordered_map<std::string, std::string> mStopWordsList{};
+	const std::unordered_map<char, char> mStopCharList{};
 	std::vector<std::string> mFirstFilterSentenceHolder{};
 	std::vector<std::string> mFinalFilterSentenceHolder{};
 
@@ -275,6 +284,18 @@ private:
 		stopWordFile.close();
 		return tempList;
 	}
+	std::unordered_map<char, char> populateCharWordMap(const std::string& stopCharFilePath)
+	{
+		std::unordered_map<char, char> tempList{};
+		std::ifstream stopCharFile{ stopCharFilePath };
+		char word{ ' ' };
+
+		while (stopCharFile >> word)
+			tempList[word] = word;
+
+		stopCharFile.close();
+		return tempList;
+	}
 	std::string setPrefilteredText(const std::string& prefilteredTextFilePath)
 	{
 		// Push input stream buffer into single string from a file
@@ -316,6 +337,7 @@ public:
 		: 
 		mSummFactor{ this->setSummFactor() },
 		mStopWordsList{ this->populateStopWordMap(FileHandler.getStopWordsFilePath()) },
+		mStopCharList{ this->populateCharWordMap(FileHandler.getStopCharFilePath()) },
 		mPrefilteredText{this->setPrefilteredText(FileHandler.getInputFilePath())},
 		mInputFilePath{FileHandler.getInputFilePath()},
 		mOutputFilePath{FileHandler.getOutputFilePath()}{}
@@ -419,7 +441,7 @@ public:
 
 int main()
 {
-	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
+	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::stopCharFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
 
 	TextParser TextParser(FileHandler);
 	TextParser.summariseFile();

@@ -9,6 +9,7 @@ namespace DirectoryInfo
 	// Folder Locations and File Type Vars
 	const std::string inputFolderDir{ "txt\\input\\" };
 	const std::string stopWordsFolderDir{ "txt\\stopwords\\" };
+	const std::string stopCharFolderDir{ "txt\\stopchars\\" };
 	const std::string outputFolderDir{ "txt\\output\\" };
 	const std::string fileType{ ".txt" };
 }
