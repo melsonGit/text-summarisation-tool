@@ -224,7 +224,6 @@ private:
 
 	// Containers
 	const std::unordered_map<std::string, std::string> mStopWordsList{};
-
 	std::vector<std::string> mFirstFilterSentenceHolder{};
 	std::vector<std::string> mFinalFilterSentenceHolder{};
 
@@ -241,8 +240,8 @@ private:
 	bool hReachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
 	bool hIsFirstCharUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
 	bool hIsFirstSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? false : true); }
-	//bool hIsLastSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890", word.size()) ? false : true); }
-	void hRemoveFirstChar(std::string& word) const { word.erase(word.begin()); }
+	bool hIsLastSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? false : true); }
+	void hRemoveFirstChar(std::string& word) const { if (word.empty()) return; else word.erase(word.begin()); }
 	void hRemoveLastChar(std::string& word) const { if (word.empty()) return; else word.pop_back(); }
 	int hRemainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
 
@@ -292,6 +291,16 @@ private:
 
 		return tempWord;
 	}
+	bool isOnlyWhitespace(const std::string& word)
+	{
+		if (!word.empty())
+		{
+			for (auto i{ 0 }; i < word.size(); ++i)
+				if (!std::isspace(word[i]))
+					return false;
+		}
+		return true;
+	}
 
 	// Parsing Functions - Impl. WIP
 	void readSentence(){}
@@ -337,34 +346,41 @@ public:
 
 				stringStream >> originalWord;
 
-				// If first letter is upper case
-				if (this->hIsFirstCharUpper(originalWord))
-					// change to lower case and assign to processed word
-					processedWord = this->decapitaliseWord(originalWord);
-				else
-					// no change needed and assign to processed word
-					processedWord = originalWord;
-
-				// !We want quotes to skip this section!
-				// If word first char is special character, remove it
-				if (this->hIsFirstSpecChar(processedWord))
-					this->hRemoveFirstChar(processedWord);
-				// If word last char is special character, remove it
-				//if (this->hIsLastSpecChar(processedWord))
-				//	this->hRemoveLastChar(processedWord);
-
-				// Check if this word is in our stop word list
-				if (this->mStopWordsList.contains(processedWord))
-					isStopWord = true; // If the word is in our stop word list, don't append to our filtered sentence
-				else
+				// Initial isOnlyWhitespace() check
+				if (!this->isOnlyWhitespace(originalWord))
 				{
-					isStopWord = false;
-					// If not, we append the word onto our post filtered sentence
-					postfilteredSentence.append(originalWord + " ");
+					// !We want quotes to skip this section!
+					// If word first char is special character, remove it
+					while (this->hIsFirstSpecChar(processedWord))
+						this->hRemoveFirstChar(processedWord);
+					// If word last char is special character, remove it
+					while (this->hIsLastSpecChar(processedWord))
+						this->hRemoveLastChar(processedWord);
+						
+					// If first letter is upper case
+					if (this->hIsFirstCharUpper(originalWord))
+						// change to lower case and assign to processed word
+						processedWord = this->decapitaliseWord(originalWord);
+					else
+						// no change needed and assign to processed word
+						processedWord = originalWord;
+
+					// Final isOnlyWhitespace() check
+					if (!this->isOnlyWhitespace(originalWord))
+					{
+						// Check if this word is in our stop word list
+						if (this->mStopWordsList.contains(processedWord))
+							isStopWord = true; // If the word is in our stop word list, don't append to our filtered sentence
+						else
+						{
+							isStopWord = false;
+							// If not, we append the word onto our post filtered sentence
+							postfilteredSentence.append(originalWord + " ");
+						}
+
+						this->mTextStatistics.processWordStats(processedWord, isStopWord);
+					}
 				}
-
-				this->mTextStatistics.processWordStats(processedWord, isStopWord);
-
 
 			} while (stringStream); // Continue until we reach the end of the stream
 
