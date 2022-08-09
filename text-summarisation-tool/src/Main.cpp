@@ -248,8 +248,7 @@ private:
 	bool hValidSummFactor(const int& factor) const { return !(factor < 1 || factor > 100); }
 	bool hReachedSummFactorLimit() const { return this->mCurrentSummFactor == this->mSummFactor; }
 	bool hIsFirstCharUpper(const std::string& word) const { return word.size() && std::isupper(word[0]); }
-	bool hIsFirstSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? false : true); }
-	bool hIsLastSpecChar(const std::string& word) const { return (word.find_first_not_of("abcdefghijklmnopqrstuvwxyz01234567890") ? false : true); }
+	bool hIsSpecChar(const char& letter) const { return this->mStopCharList.contains(letter); }
 	void hRemoveFirstChar(std::string& word) const { if (word.empty()) return; else word.erase(word.begin()); }
 	void hRemoveLastChar(std::string& word) const { if (word.empty()) return; else word.pop_back(); }
 	int hRemainingSummFactor() { return this->mSummFactor - this->mCurrentSummFactor; }
@@ -371,14 +370,17 @@ public:
 				// Initial isOnlyWhitespace() check
 				if (!this->isOnlyWhitespace(originalWord))
 				{
-					// !We want quotes to skip this section!
-					// If word first char is special character, remove it
-					while (this->hIsFirstSpecChar(processedWord))
-						this->hRemoveFirstChar(processedWord);
-					// If word last char is special character, remove it
-					while (this->hIsLastSpecChar(processedWord))
-						this->hRemoveLastChar(processedWord);
-						
+					// Then after, we check for quotes
+					// Then after, we check for brackets
+					// Both skip these sections
+
+					// If first char is special character, remove it
+					while (!originalWord.empty() && !this->hIsSpecChar(originalWord[0]))
+						this->hRemoveFirstChar(originalWord);
+					// If last char is special character, remove it
+					while (!originalWord.empty() && !this->hIsSpecChar(originalWord[originalWord.size()-1]))
+						this->hRemoveLastChar(originalWord);
+					
 					// If first letter is upper case
 					if (this->hIsFirstCharUpper(originalWord))
 						// change to lower case and assign to processed word
@@ -388,7 +390,7 @@ public:
 						processedWord = originalWord;
 
 					// Final isOnlyWhitespace() check
-					if (!this->isOnlyWhitespace(originalWord))
+					if (!this->isOnlyWhitespace(processedWord))
 					{
 						// Check if this word is in our stop word list
 						if (this->mStopWordsList.contains(processedWord))
@@ -444,6 +446,7 @@ int main()
 	FileHandler FileHandler(DirectoryInfo::inputFolderDir, DirectoryInfo::stopWordsFolderDir, DirectoryInfo::stopCharFolderDir, DirectoryInfo::outputFolderDir, DirectoryInfo::fileType);
 
 	TextParser TextParser(FileHandler);
+
 	TextParser.summariseFile();
 
 	return EXIT_SUCCESS;
