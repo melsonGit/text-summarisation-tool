@@ -147,7 +147,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\File.cpp" />
+    <ClCompile Include="src\FileHandler.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\TextParser.cpp" />
+    <ClCompile Include="src\TextStatistics.cpp" />
+    <ClCompile Include="src\SummUtils.cpp" />
+    <ClCompile Include="src\Word.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="txt\inFile.txt" />
@@ -155,6 +161,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\DirectoryInfo.h" />
+    <ClInclude Include="inc\File.h" />
+    <ClInclude Include="inc\FileHandler.h" />
+    <ClInclude Include="inc\TextParser.h" />
+    <ClInclude Include="inc\TextStatistics.h" />
+    <ClInclude Include="inc\SummUtils.h" />
+    <ClInclude Include="inc\Word.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
